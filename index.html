@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIO Video Downloader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .platform-tabs {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            background: #eee;
+            border: none;
+            cursor: pointer;
+        }
+        .tab.active {
+            background: #3498db;
+            color: white;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 20px;
+            display: none;
+        }
+        .download-btn {
+            display: block;
+            background: #2ecc71;
+            color: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 15px;
+            padding: 10px;
+            background: #fadbd8;
+            border-radius: 4px;
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            margin: 15px 0;
+            display: none;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AIO Video Downloader</h1>
+        
+        <div class="platform-tabs">
+            <button class="tab active" data-platform="tiktok">TikTok</button>
+            <button class="tab" data-platform="instagram">Instagram</button>
+            <button class="tab" data-platform="youtube">YouTube</button>
+            <button class="tab" data-platform="facebook">Facebook</button>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="videoUrl" placeholder="Paste video link here...">
+        </div>
+        
+        <button id="downloadBtn">Download</button>
+        
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+        
+        <div class="error" id="errorMessage"></div>
+        
+        <div class="result" id="result">
+            <h3>Download Options:</h3>
+            <div id="downloadOptions"></div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2023 AIO Video Downloader</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.tab');
+            const videoUrlInput = document.getElementById('videoUrl');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const loadingDiv = document.querySelector('.loading');
+            const errorDiv = document.getElementById('errorMessage');
+            const resultDiv = document.getElementById('result');
+            const downloadOptionsDiv = document.getElementById('downloadOptions');
+            
+            let currentPlatform = 'tiktok';
+            
+            // Tab selection
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentPlatform = this.getAttribute('data-platform');
+                });
+            });
+            
+            // Download button click
+            downloadBtn.addEventListener('click', function() {
+                const url = videoUrlInput.value.trim();
+                
+                if (!url) {
+                    showError('Please enter a video URL');
+                    return;
+                }
+                
+                loadingDiv.style.display = 'block';
+                resultDiv.style.display = 'none';
+                errorDiv.style.display = 'none';
+                
+                processVideo(url);
+            });
+            
+            function showError(message) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                loadingDiv.style.display = 'none';
+            }
+            
+            function showResult(data) {
+                downloadOptionsDiv.innerHTML = '';
+                
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(option => {
+                        const link = document.createElement('a');
+                        link.href = option.url;
+                        link.className = 'download-btn';
+                        link.textContent = option.title;
+                        link.target = '_blank';
+                        downloadOptionsDiv.appendChild(link);
+                    });
+                    
+                    resultDiv.style.display = 'block';
+                } else {
+                    showError('No download options available');
+                }
+                
+                loadingDiv.style.display = 'none';
+            }
+            
+            async function processVideo(url) {
+                const apiUrl = 'https://api.neoxr.my.id/api/aio-v2';
+                const apiKey = 'agasndul';
+                
+                try {
+                    // Clean URL (remove parameters)
+                    const cleanUrl = url.split('?')[0];
+                    
+                    // Use CORS proxy if needed
+                    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                    const fullUrl = `${proxyUrl}${apiUrl}?url=${encodeURIComponent(cleanUrl)}&apikey=${apiKey}`;
+                    
+                    const response = await fetch(fullUrl, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status) {
+                        showResult(data);
+                    } else {
+                        showError('Failed to process video. Please check the URL.');
+                    }
+                } catch (error) {
+                    showError('An error occurred. Please try again later.');
+                    console.error(error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
